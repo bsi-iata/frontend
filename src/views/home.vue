@@ -3,10 +3,9 @@ import { reactive, computed, onMounted, ref } from "vue";
 import { Search, Plus } from "@element-plus/icons-vue";
 import { VxeTable } from "vxe-table";
 import Copy from "../assets/copy.svg";
-import { useRouter } from 'vue-router'
+import { useRouter } from "vue-router";
 
-
-const router = useRouter()
+const router = useRouter();
 const formState = reactive({
   keywords: "1",
   type: "1",
@@ -15,7 +14,7 @@ const formState = reactive({
 const vxeGridProps = computed(() => {
   return {
     // border: 'inner  ',
-    data: [{}, {},{}, {},{}, {},{}, {},{}, {},{}, {},{}, {}],
+    data: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
     rowConfig: {
       height: 80,
     },
@@ -27,46 +26,48 @@ const vxeGridProps = computed(() => {
       },
       {
         title: "NO",
-        fixed: "NO",
+        field: "NO",
         slots: { default: "NO" },
       },
       {
         title: "Flight",
-        fixed: "Flight",
+        field: "Flight",
         slots: { default: "Flight" },
       },
       {
         title: "Destination",
-        fixed: "Destination",
+        field: "Destination",
         slots: { default: "Destination" },
       },
       {
         title: "Package",
-        fixed: "Package",
+        field: "Package",
         slots: { default: "Package" },
       },
       {
         title: "Goods",
-        fixed: "Goods",
+        field: "Goods",
         slots: { default: "Goods" },
       },
       {
         title: "",
         fixed: "actions",
+        width: 60,
+        fixed: 'right',
         slots: { default: "actions" },
       },
     ],
   };
 });
 
-const height = ref(500)
+const height = ref(500);
 
 onMounted(() => {
-    height.value = window.innerHeight - 196
-})
+  height.value = window.innerHeight - 196;
+});
 
 function onNewOrder() {
-    router.push('/detail')
+  router.push("/detail");
 }
 </script>
 
@@ -108,7 +109,9 @@ function onNewOrder() {
           </div>
         </div>
         <div>
-          <el-button type="primary" :icon="Plus" link @click="onNewOrder">New Order</el-button>
+          <el-button type="primary" link @click="onNewOrder">
+            New Air Order
+          </el-button>
         </div>
       </div>
     </div>
@@ -151,6 +154,11 @@ function onNewOrder() {
           <div>Merlin Lighter</div>
           <div>Val：3000 USD</div>
           <div class="color-red">Battery</div>
+        </template>
+        <template #actions>
+          <el-button type="primary" link @click="onNewOrder">
+            View
+          </el-button>
         </template>
       </vxe-grid>
     </div>
