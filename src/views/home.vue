@@ -6,6 +6,7 @@ import Copy from "../assets/copy.svg";
 import { useRouter } from "vue-router";
 import request from "../util/http";
 import { copyText } from "../util/copy";
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const router = useRouter();
 const formState = reactive({
@@ -32,6 +33,7 @@ const vxeGridProps = computed(() => {
       {
         title: "NO",
         field: "NO",
+        minWidth: 150,
         slots: { default: "NO" },
       },
       {
@@ -58,7 +60,7 @@ const vxeGridProps = computed(() => {
         title: "",
         fixed: "right",
         field: "actions",
-        width: 100,
+        width: 120,
         slots: { default: "actions" },
       },
     ],
@@ -101,8 +103,23 @@ function onCopyClick(no: string) {
   copyText(no);
 }
 
-function onDeteleOrder(row) {
-
+function onDeteleOrder(row: any) {
+  ElMessageBox.alert("Are you sure to delete it", "Reminder", {
+    // if you want to disable its autofocus
+    // autofocus: false,
+    // confirmButtonText: "OK",
+    showCancelButton: true,
+  }).then(() => {
+    request({
+      url: `/Order/${row.no}`,
+      method: "POST",
+    }).then((res: any) => {
+      if (res.code === "200") {
+        ElMessage.success("Detele success");
+        onSearch();
+      }
+    });
+  });
 }
 </script>
 

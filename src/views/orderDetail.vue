@@ -5,12 +5,13 @@ import { Delete } from "@element-plus/icons-vue";
 import { UploadFilled } from "@element-plus/icons-vue";
 import request, { baseUrl } from "../util/http";
 import { useRoute, useRouter } from "vue-router";
-import { dayjs, ElMessage } from "element-plus";
+import { dayjs, ElMessage, ElMessageBox } from "element-plus";
 import { airline, contry, state, city, port, flight } from "./config";
 import 危险 from "../assets/危险.svg";
 import { saveAs } from "file-saver";
 
 const formState = reactive({
+  code: '',
   airline: "",
   flight: "",
   departure: "",
@@ -220,6 +221,7 @@ function queryDetail(code: string) {
   }).then((res: any) => {
     console.log(res, "res");
     const [item] = res.packages;
+    formState.code = res.code
     formState.airline = res.airline;
     formState.flight = res.flight;
     formState.departure = dayjs(res.departure).format("DD/MM/YYYY hh:mm:ss A");
@@ -252,7 +254,17 @@ onMounted(() => {
 });
 
 function onTableDetele(row: any) {
-  unref(tableRef)?.remove(row);
+  ElMessageBox.alert("Are you sure to delete it", "Reminder", {
+    // if you want to disable its autofocus
+    // autofocus: false,
+    // confirmButtonText: "OK",
+    showCancelButton: true,
+  }).then(() => {
+    unref(tableRef)?.remove(row);
+    goods.value = unref(goods).filter(
+      (item: any) => item._X_ROW_KEY !== row._X_ROW_KEY
+    );
+  });
 }
 
 // function onUploadClick() {}
@@ -278,6 +290,7 @@ async function onSubmitClick() {
   if (!msg) {
     console.log(formState, "formState");
     const body = {
+      code: formState.code,
       package: {
         airline: formState.airline,
         flight: formState.flight,
@@ -680,7 +693,13 @@ function onPrewClick(row) {
             @click="onPrewClick(photo)"
           /> -->
 
-          <el-image :preview-src-list="[row.photo]" v-else style="width: 24px; height: 24px" :src="row.photo" />
+          <el-image
+            v-else
+            class="cursor-pointer"
+            :preview-src-list="[row.photo]"
+            style="width: 24px; height: 24px"
+            :src="row.photo"
+          />
         </template>
         <template #action="{ row }">
           <el-icon class="cursor-pointer" @click="onTableDetele(row)">

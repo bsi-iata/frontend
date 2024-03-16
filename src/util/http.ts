@@ -1,9 +1,9 @@
 import axios from "axios";
 
-export const baseUrl = "http://192.168.196.170:5267";
+export const baseUrl = "http://192.168.196.166:5267";
 
 const instance = axios.create({
-  baseURL: "http://192.168.196.170:5267",
+  baseURL: "http://192.168.196.166:5267",
   timeout: 60000,
 });
 
