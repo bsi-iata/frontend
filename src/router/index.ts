@@ -18,7 +18,8 @@ const router = createRouter({
       meta: {
         title: '详情'
       },
-      component: () => import('../views/orderDetail.vue')
+      component: () => import('../views/orderDetail.vue'),
+      props: true
     },
   ]
 })

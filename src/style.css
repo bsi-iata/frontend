@@ -66,10 +66,12 @@ button:focus-visible {
 
   width: 100vw;
   height: 100vh;
+  min-width: 1280px; 
 }
 
 .bsi-right {
-  width: calc(100vw - 200px);
+  width: calc(100vw - 240px);
+  min-width: calc(1280px - 240px); 
 }
 
 .bsi-content {

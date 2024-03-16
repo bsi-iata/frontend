@@ -12,7 +12,7 @@
 
 <style>
 .bsi-left {
-  min-width: 200px;
+  min-width: 240px;
   height: 100vh;
   box-shadow: 0 2px 10px #eee;
 }
