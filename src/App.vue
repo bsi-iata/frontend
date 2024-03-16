@@ -1,24 +1,18 @@
-<script setup lang="ts">
-
+<script setup>
+import Header from "./components/Header.vue";
+import Left from "./components/Left.vue";
 </script>
 
 <template>
-  <div>
-    11312
+  <div class="relative">
+    <div class="flex">
+      <Left />
+      <div class="bsi-right">
+        <Header />
+        <div class="bsi-content">
+          <RouterView />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
-
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>

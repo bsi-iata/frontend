@@ -25,7 +25,7 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  /* place-items: center; */
   min-width: 320px;
   min-height: 100vh;
 }
@@ -59,10 +59,24 @@ button:focus-visible {
 }
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  /* max-width: 1280px; */
+  /* margin: 0 auto; */
+  /* padding: 2rem; */
+  /* text-align: center; */
+
+  width: 100vw;
+  height: 100vh;
+}
+
+.bsi-right {
+  width: calc(100vw - 200px);
+}
+
+.bsi-content {
+  height: calc(100vh - 64px);
+  background-color: #f5f5f9;
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 @media (prefers-color-scheme: light) {
