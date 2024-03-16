@@ -1,7 +1,7 @@
 import { ElMessage } from 'element-plus'
 
 // `navigator.clipboard` 可能因浏览器设置或浏览器兼容而造成兼容问题
-export function copyText(text: string, prompt: string | null = '已成功复制到剪切板!') {
+export function copyText(text: string, prompt: string | null = 'Copied to the clipboard successfully!') {
   if (navigator.clipboard) {
     return navigator.clipboard
       .writeText(text)
@@ -9,7 +9,7 @@ export function copyText(text: string, prompt: string | null = '已成功复制�
         prompt && ElMessage.success(prompt);
       })
       .catch((error) => {
-        ElMessage.error('复制失败!' + error.message);
+        ElMessage.error('Copied error!' + error.message);
         return error;
       });
   }
@@ -32,10 +32,10 @@ export function copyText(text: string, prompt: string | null = '已成功复制�
         prompt && ElMessage.success(prompt);
         resolve();
       } catch (error) {
-        ElMessage.error('复制失败!' + error.message);
+        ElMessage.error('Copied failed!' + error.message);
         reject(error);
       }
     });
   }
-  return Promise.reject(`"navigator.clipboard" 或 "document.execCommand" 中存在API错误, 拷贝失败!`);
+  // return Promise.reject(`"navigator.clipboard" 或 "document.execCommand" 中存在API错误, 拷贝失败!`);
 }

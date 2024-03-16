@@ -6,7 +6,7 @@ import Copy from "../assets/copy.svg";
 import { useRouter } from "vue-router";
 import request from "../util/http";
 import { copyText } from "../util/copy";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage, ElMessageBox, dayjs } from "element-plus";
 
 const router = useRouter();
 const formState = reactive({
@@ -14,15 +14,20 @@ const formState = reactive({
   Status: 0,
   Reference: "",
 });
+const loading = ref(false);
 
 const tableData = ref([]);
 
-const vxeGridProps = computed(() => {
+const vxeGridProps = computed((): any => {
   return {
     // border: 'inner  ',
     data: unref(tableData),
-    rowConfig: {
-      height: 80,
+    // rowConfig: {
+    //   height: 80,
+    // },
+    // loading: unref(loading),
+    scrollX: {
+      enabled: true,
     },
     columns: [
       {
@@ -33,28 +38,57 @@ const vxeGridProps = computed(() => {
       {
         title: "NO",
         field: "NO",
-        minWidth: 150,
+        width: 160,
         slots: { default: "NO" },
       },
       {
-        title: "Flight",
-        field: "Flight",
-        slots: { default: "Flight" },
+        title: "Airline",
+        field: "airline",
+        minWidth: 100,
+        // slots: { default: "Flight" },
       },
       {
-        title: "Destination",
-        field: "destination",
-        // slots: { default: "Destination" },
+        title: "Flight NO",
+        field: "flight",
+        width: 100,
+        // slots: { default: "Flight" },
       },
       {
-        title: "Package",
-        field: "package",
-        // slots: { default: "Package" },
+        title: "Departure at",
+        field: "departure",
+        width: 150,
+        slots: { default: "departure-at" },
       },
       {
-        title: "Goods",
-        field: "goods",
-        // slots: { default: "Goods" },
+        title: "Departure",
+        field: "departureAddress",
+        width: 100,
+      },
+      {
+        title: "Arrival at",
+        field: "arrival",
+        slots: { default: "arrival-at" },
+        width: 150,
+      },
+      {
+        title: "Arrival",
+        field: "arrivalAddress",
+        width: 100,
+      },
+      {
+        title: "Weight(KG)",
+        field: "package.weight",
+        width: 100,
+      },
+      {
+        title: "Volumn(cbm)",
+        field: "package.volumn",
+        width: 120,
+      },
+      {
+        title: "Country",
+        field: "destination.contry",
+        width: 100,
       },
       {
         title: "",
@@ -75,6 +109,7 @@ onMounted(() => {
 });
 
 function onSearch() {
+  loading.value = true;
   request({
     url: `/Order`,
     method: "get",
@@ -85,10 +120,16 @@ function onSearch() {
       Code: formState.Code,
       Reference: formState.Reference,
     },
-  }).then((res: any) => {
-    console.log(res);
-    tableData.value = res.items;
-  });
+  })
+    .then((res: any) => {
+      console.log(res, "res");
+      loading.value = false;
+      tableData.value = res.items;
+    })
+    .catch((error) => {
+      console.log(error, "error");
+      loading.value = false;
+    });
 }
 
 function onNewOrder(item?: any) {
@@ -142,29 +183,34 @@ function onDeteleOrder(row: any) {
               >
                 <el-option label="Keywords" :value="0" />
                 <el-option label="Order No" :value="1" />
-                <el-option label="Reference No" :value="2" />
+                <!-- <el-option label="Reference No" :value="2" /> -->
               </el-select>
             </template>
           </el-input>
           <div class="flex ml-4 items-center">
-            <div class="p-2">Received On</div>
+            <div class="p-2">Departure</div>
             <el-date-picker
               v-model="formState.Reference"
               type="daterange"
+              format="DD/MM/YYYY"
+              value-format="YYYY-MM-DD"
               range-separator="To"
               start-placeholder="Start date"
               end-placeholder="End date"
             />
           </div>
           <div class="ml-4">
-            <el-button type="primary" :icon="Search" @click="onSearch">
+            <el-button
+              :icon="Search"
+              @click="onSearch"
+            >
               Search
             </el-button>
           </div>
         </div>
         <div>
-          <el-button type="primary" link @click="onNewOrder">
-            New Air Order
+          <el-button type="primary" @click="onNewOrder()">
+            New Order
           </el-button>
         </div>
       </div>
@@ -174,7 +220,7 @@ function onDeteleOrder(row: any) {
       <VxeGrid v-bind="vxeGridProps" show-overflow :height="height">
         <template #NO="{ row }">
           <div class="flex items-center">
-            <el-tag color="#409eff">Ord.no</el-tag>
+            <!-- <el-tag color="#409eff">Ord.no</el-tag> -->
             <div class="flex items-center bsi-no-tag ml-1">
               {{ row.no }}
               <img
@@ -192,9 +238,11 @@ function onDeteleOrder(row: any) {
             </div>
           </div> -->
         </template>
-        <template #Flight="{ row }">
-          <div>{{ row.airline }} - {{ row.flight }}</div>
-          <!-- <div>ETD/ETA: 24/4/5 - 24/4/6</div> -->
+        <template #arrival-at="{ row }">
+          <div>{{ dayjs(row.arrival).format("DD/MM/YYYY hh:mm A") }}</div>
+        </template>
+        <template #departure-at="{ row }">
+          <div>{{ dayjs(row.departure).format("DD/MM/YYYY hh:mm A") }}</div>
         </template>
         <!-- <template #Destination>
           <div>Germany</div>

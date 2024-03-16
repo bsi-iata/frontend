@@ -8,10 +8,11 @@ import { useRoute, useRouter } from "vue-router";
 import { dayjs, ElMessage, ElMessageBox } from "element-plus";
 import { airline, contry, state, city, port, flight } from "./config";
 import 危险 from "../assets/危险.svg";
-import { saveAs } from "file-saver";
+import { AxiosResponse } from "axios";
+// import { saveAs } from "file-saver";
 
 const formState = reactive({
-  code: '',
+  code: "",
   airline: "",
   flight: "",
   departure: "",
@@ -57,7 +58,41 @@ const formRule = {
   volumn: [
     {
       required: true,
-      message: "Please volumn",
+      message: "Please input",
+    },
+  ],
+};
+
+const rules = {
+  address: [
+    {
+      required: true,
+      message: "Please input",
+    },
+    {
+      asyncValidator: async (
+        _: any,
+        value: any,
+        callback: (arg0: AxiosResponse<any, any>) => void
+      ) => {
+        console.log(value, "value");
+        if (value) {
+          const res: any = await request({
+            url: `/Address/check_address`,
+            method: "POST",
+            data: {
+              address: value,
+            },
+          });
+          console.log(res, res.result.indexOf("Suspected"));
+          if (res.result.indexOf("Suspected") !== -1) {
+            callback(res.result);
+          } else {
+            callback();
+          }
+        }
+      },
+      trigger: "blur",
     },
   ],
 };
@@ -67,10 +102,20 @@ const goods = ref([]);
 const tableRef = ref();
 const formRef = ref();
 const uploadRef = ref();
+const divRef = ref();
 const route = useRoute();
 const router = useRouter();
 
 const aiResults = ref([]);
+const fileList = ref([]);
+const fileModelList = ref([]);
+
+const format = "DD/MM/YYYY hh:mm A";
+
+const loading = reactive({
+  pageLoading: false,
+  modelLoading: false,
+});
 
 const dialog = reactive({
   visiable: false,
@@ -78,7 +123,7 @@ const dialog = reactive({
   file: "",
 });
 
-const vxeGridProps = computed(() => {
+const vxeGridProps = computed((): any => {
   return {
     data: unref(goods),
     maxHeight: 400,
@@ -209,44 +254,43 @@ function onImportClick() {
 
 function queryDetail(code: string) {
   console.log(code, "code");
+  loading.pageLoading = true;
   request({
     url: `/Order/${code}`,
-    method: "get",
-    // params: {
-    //   code: code
-    // }
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-    },
-  }).then((res: any) => {
-    console.log(res, "res");
-    const [item] = res.packages;
-    formState.code = res.code
-    formState.airline = res.airline;
-    formState.flight = res.flight;
-    formState.departure = dayjs(res.departure).format("DD/MM/YYYY hh:mm:ss A");
-    formState.weight = item.weight;
-    formState.arrival = dayjs(res.arrival).format("DD/MM/YYYY hh:mm:ss A");
-    formState.remark = item.remark;
-    formState.goodsDesc = item.goodsDesc;
-    formState.quantity = item.quantity;
-    formState.volumn = item.volumn;
-    formState.departureAddress = res.departureAddress;
-    formState.arrivalAddress = res.arrivalAddress;
-    formState.name = item.contact.name;
-    formState.phone = item.contact.phone;
-    formState.email = item.contact.email;
-    formState.contry = item.contact.contry;
-    formState.state = item.contact.state;
-    formState.city = item.contact.city;
-    formState.zip = item.contact.zip;
-    formState.address = item.contact.address;
-    goods.value = item.goods;
-  });
+    method: "GET",
+  })
+    .then((res: any) => {
+      loading.pageLoading = false;
+      const [item] = res.packages;
+      formState.code = res.code;
+      formState.airline = res.airline;
+      formState.flight = res.flight;
+      formState.departure = dayjs(res.departure).format(format);
+      formState.weight = item.weight;
+      formState.arrival = dayjs(res.arrival).format(format);
+      formState.remark = item.remark;
+      formState.goodsDesc = item.goodsDesc;
+      formState.quantity = item.quantity;
+      formState.volumn = item.volumn;
+      formState.departureAddress = res.departureAddress;
+      formState.arrivalAddress = res.arrivalAddress;
+      formState.name = item.contact.name;
+      formState.phone = item.contact.phone;
+      formState.email = item.contact.email;
+      formState.contry = item.contact.contry;
+      formState.state = item.contact.state;
+      formState.city = item.contact.city;
+      formState.zip = item.contact.zip;
+      formState.address = item.contact.address;
+      goods.value = item.goods;
+    })
+    .catch(() => {
+      loading.pageLoading = false;
+    });
 }
 
 onMounted(() => {
-  console.log(route, "route");
+  // console.log(route, "route");
   const { query } = route;
   if (query && query.code) {
     queryDetail(query.code as string);
@@ -255,9 +299,6 @@ onMounted(() => {
 
 function onTableDetele(row: any) {
   ElMessageBox.alert("Are you sure to delete it", "Reminder", {
-    // if you want to disable its autofocus
-    // autofocus: false,
-    // confirmButtonText: "OK",
     showCancelButton: true,
   }).then(() => {
     unref(tableRef)?.remove(row);
@@ -271,10 +312,7 @@ function onTableDetele(row: any) {
 
 function onUploadSuccess(row: any, arg: any) {
   row.photo = arg.msg || "-";
-}
-
-function onBeforeUpload(arg) {
-  console.log(arg, "arg");
+  fileList.value = [];
 }
 
 function handleClose() {
@@ -286,9 +324,7 @@ async function onSubmitClick() {
   const msg = await unref(tableRef).validate(true);
 
   const { insertRecords } = await unref(tableRef).getRecordset();
-  console.log(insertRecords, "records");
   if (!msg) {
-    console.log(formState, "formState");
     const body = {
       code: formState.code,
       package: {
@@ -297,14 +333,10 @@ async function onSubmitClick() {
         departureAddress: formState.departureAddress,
         arrivalAddress: formState.arrivalAddress,
         departure: formState.arrival
-          ? dayjs(formState.departure, "DD/MM/YYYY hh:mm:ss A").format(
-              "YYYY-MM-DD HH:mm:ss"
-            )
+          ? dayjs(formState.departure, format).format("YYYY-MM-DD HH:mm:ss")
           : undefined,
         arrival: formState.arrival
-          ? dayjs(formState.arrival, "DD/MM/YYYY hh:mm:ss A").format(
-              "YYYY-MM-DD HH:mm:ss"
-            )
+          ? dayjs(formState.arrival, format).format("YYYY-MM-DD HH:mm:ss")
           : undefined,
         weight: formState.weight,
         volumn: formState.volumn,
@@ -336,45 +368,50 @@ async function onSubmitClick() {
         };
       }),
     };
-    console.log(body, "body");
+    loading.pageLoading = true;
     request({
       url: "/Order",
       method: "POST",
       data: body,
-    }).then((res) => {
-      console.log(res, "res");
-      if (res.code === "200") {
-        ElMessage.success("success");
-        router.push("/");
-      }
-    });
+    })
+      .then((res: any) => {
+        loading.pageLoading = false;
+        if (res.code === "200") {
+          ElMessage.success("success");
+          router.push("/");
+        }
+      })
+      .catch((error) => {
+        console.log(error, "error");
+        loading.pageLoading = false;
+      });
   }
 }
 
-// function downloadByData(
-//   data: BlobPart,
-//   filename: string,
-//   mime?: string,
-//   bom?: BlobPart
-// ) {
-//   const blobData = typeof bom !== "undefined" ? [bom, data] : [data];
-//   const blob = new Blob(blobData, {
-//     type: mime || "application/octet-stream",
-//   });
+function downloadByData(
+  data: BlobPart,
+  filename: string,
+  mime?: string,
+  bom?: BlobPart
+) {
+  const blobData = typeof bom !== "undefined" ? [bom, data] : [data];
+  const blob = new Blob(blobData, {
+    type: mime || "application/octet-stream",
+  });
 
-//   const blobURL = window.URL.createObjectURL(blob);
-//   const tempLink = document.createElement("a");
-//   tempLink.style.display = "none";
-//   tempLink.href = blobURL;
-//   tempLink.setAttribute("download", filename);
-//   if (typeof tempLink.download === "undefined") {
-//     tempLink.setAttribute("target", "_blank");
-//   }
-//   document.body.appendChild(tempLink);
-//   tempLink.click();
-//   document.body.removeChild(tempLink);
-//   window.URL.revokeObjectURL(blobURL);
-// }
+  const blobURL = window.URL.createObjectURL(blob);
+  const tempLink = document.createElement("a");
+  tempLink.style.display = "none";
+  tempLink.href = blobURL;
+  tempLink.setAttribute("download", filename);
+  if (typeof tempLink.download === "undefined") {
+    tempLink.setAttribute("target", "_blank");
+  }
+  document.body.appendChild(tempLink);
+  tempLink.click();
+  document.body.removeChild(tempLink);
+  window.URL.revokeObjectURL(blobURL);
+}
 
 // onExampleClick
 function onExampleClick() {
@@ -382,30 +419,38 @@ function onExampleClick() {
     url: "/GetExampleFile",
     method: "get",
     responseType: "blob",
-  }).then((res) => {
+  }).then((res: any) => {
     console.log(res, "res");
-    // downloadByData(res, "example.xlsx");
-    saveAs(new Blob([res]), "example.xlsx");
+    downloadByData(res, "example.xlsx");
   });
 }
 
-function onUploadDialogSuccess(data) {
-  console.log(data, "onUploadDialogSuccess");
-  goods.value = data.data.goods;
-  aiResults.value = data.data.aiResults;
-  handleClose();
+function onBeforeUpload(arg: any) {
+  console.log(arg, "arg");
 }
 
-//
-function onPrewClick(row) {
-  console.log(row);
-  dialog.fileVisiable = true;
-  dialog.file = row.photo;
+function onBeforeDialogUpload(arg: any) {
+  console.log(arg, "arg");
+  loading.modelLoading = true;
+}
+
+function onUploadDialogSuccess(data: any) {
+  goods.value = [];
+  goods.value = data.data.goods;
+  aiResults.value = [];
+  aiResults.value = data.data.aiResults;
+  handleClose();
+  loading.modelLoading = false;
+  fileModelList.value = [];
+  console.log(unref(divRef), "unref(divRef)");
+  setTimeout(() => {
+    unref(divRef).scrollTop = 400;
+  }, 100);
 }
 </script>
 
 <template>
-  <div class="overflow-auto h-full box-border">
+  <div ref="divRef" class="overflow-auto h-full box-border">
     <div class="bg-#fff p-4 mb-3">
       <div class="mb-4">
         <div class="pl-2 mb-2" style="border-left: 4px solid #409eff">
@@ -421,7 +466,7 @@ function onPrewClick(row) {
           <el-row :gutter="20">
             <el-col :span="8">
               <el-form-item label="Airline" prop="airline">
-                <el-select v-model="formState.airline">
+                <el-select v-model="formState.airline" filterable>
                   <el-option
                     v-for="item in airline"
                     :key="item.value"
@@ -433,7 +478,7 @@ function onPrewClick(row) {
             </el-col>
             <el-col :span="8">
               <el-form-item label="Flight NO" prop="flight">
-                <el-select v-model="formState.flight">
+                <el-select v-model="formState.flight" filterable>
                   <el-option
                     v-for="item in flight"
                     :key="item.value"
@@ -449,8 +494,8 @@ function onPrewClick(row) {
                   <el-col :span="16">
                     <el-date-picker
                       v-model="formState.departure"
-                      format="DD/MM/YYYY hh:mm:ss A"
-                      value-format="DD/MM/YYYY hh:mm:ss A"
+                      :format="format"
+                      :value-format="format"
                       type="datetime"
                       placeholder="Select date and time"
                       class="w-full!"
@@ -464,7 +509,7 @@ function onPrewClick(row) {
                     >
                     </el-select> -->
 
-                    <el-select v-model="formState.departureAddress">
+                    <el-select v-model="formState.departureAddress" filterable>
                       <el-option
                         v-for="item in port"
                         :key="item.value"
@@ -506,8 +551,8 @@ function onPrewClick(row) {
                   <el-col :span="16">
                     <el-date-picker
                       v-model="formState.arrival"
-                      format="DD/MM/YYYY hh:mm:ss A"
-                      value-format="DD/MM/YYYY hh:mm:ss A"
+                      :format="format"
+                      :value-format="format"
                       type="datetime"
                       placeholder="Select date and time"
                       class="w-full!"
@@ -519,7 +564,7 @@ function onPrewClick(row) {
                       class="w-full!"
                     >
                     </el-select> -->
-                    <el-select v-model="formState.arrivalAddress">
+                    <el-select v-model="formState.arrivalAddress" filterable>
                       <el-option
                         v-for="item in port"
                         :key="item.value"
@@ -564,7 +609,13 @@ function onPrewClick(row) {
         <div class="pl-2 mb-2" style="border-left: 4px solid #409eff">
           Receiver
         </div>
-        <el-form :model="formState" label-width="100" label-position="right">
+        <el-form
+          :model="formState"
+          :rules="rules"
+          status-icon
+          label-width="100"
+          label-position="right"
+        >
           <el-row :gutter="20">
             <el-col :span="8">
               <el-form-item label="Receiver" prop="name">
@@ -586,7 +637,7 @@ function onPrewClick(row) {
             <el-col :span="8">
               <el-form-item label="Country" prop="contry">
                 <!-- <el-select v-model="formState.contry"> </el-select> -->
-                <el-select v-model="formState.contry">
+                <el-select v-model="formState.contry" filterable>
                   <el-option
                     v-for="item in contry"
                     :key="item.value"
@@ -599,7 +650,7 @@ function onPrewClick(row) {
             <el-col :span="8">
               <el-form-item label="State" prop="state">
                 <!-- <el-select v-model="formState.state"> </el-select> -->
-                <el-select v-model="formState.state">
+                <el-select v-model="formState.state" filterable>
                   <el-option
                     v-for="item in state"
                     :key="item.value"
@@ -612,14 +663,15 @@ function onPrewClick(row) {
             <el-col :span="8">
               <el-form-item label="City" prop="city">
                 <!-- <el-select v-model="formState.city"> </el-select> -->
-                <el-select v-model="formState.city">
+                <!-- <el-select v-model="formState.city">
                   <el-option
                     v-for="item in city"
                     :key="item.value"
                     :label="item.label"
                     :value="item.value"
                   />
-                </el-select>
+                </el-select> -->
+                <el-input v-model="formState.city" />
               </el-form-item>
             </el-col>
             <el-col :span="8">
@@ -628,7 +680,11 @@ function onPrewClick(row) {
               </el-form-item>
             </el-col>
             <el-col :span="16">
-              <el-form-item label="Address" prop="address">
+              <el-form-item
+                label="Address"
+                prop="address"
+                validate-status="success"
+              >
                 <el-input v-model="formState.address"> </el-input>
               </el-form-item>
             </el-col>
@@ -637,7 +693,10 @@ function onPrewClick(row) {
       </div>
     </div>
     <div class="bg-#fff p-4 mb-3">
-      <div class="pl-2 mb-2 flex" style="border-left: 4px solid #409eff">
+      <div
+        class="pl-2 mb-2 flex items-center"
+        style="border-left: 4px solid #409eff"
+      >
         <div>Goods</div>
         <div class="ml-4">
           <el-button type="primary" @click="onAddClick">Add</el-button>
@@ -677,11 +736,12 @@ function onPrewClick(row) {
             v-if="!row.photo"
             class="upload-demo"
             :action="`${baseUrl}/Upload`"
+            v-model:file-list="fileList"
             :show-file-list="false"
             accept=".png,.jpg"
             :limit="1"
             :before-upload="onBeforeUpload"
-            :on-success="(arg) => onUploadSuccess(row, arg)"
+            :on-success="(arg: any) => onUploadSuccess(row, arg)"
           >
             <el-button type="primary" link>Upload</el-button>
           </el-upload>
@@ -699,6 +759,7 @@ function onPrewClick(row) {
             :preview-src-list="[row.photo]"
             style="width: 24px; height: 24px"
             :src="row.photo"
+            alt="error"
           />
         </template>
         <template #action="{ row }">
@@ -718,14 +779,13 @@ function onPrewClick(row) {
           <img :src="危险" alt="" />
         </div>
         <div class="ml-2">
-          <div>Seems the goods picture contains battery</div>
           <div>
-            System suggest following criteria for shipping dangerous goods:
-          </div>
-
-          <div>
-            <div v-for="(item, index) in aiResults" :key="index">
-              <div>{{ index + 1 }}.{{ item }}</div>
+            <div
+              v-for="(item, index) in aiResults.slice(0, aiResults.length - 1)"
+              :key="index"
+              class="mb-1.5"
+            >
+              <div v-html="item"></div>
             </div>
           </div>
         </div>
@@ -733,7 +793,7 @@ function onPrewClick(row) {
     </div>
 
     <div class="w-full h-56px flex justify-center items-center z-100">
-      <el-button type="primary" @click="onSubmitClick">Submit</el-button>
+      <el-button type="primary" @click="onSubmitClick"> Submit </el-button>
     </div>
 
     <el-dialog
@@ -742,28 +802,30 @@ function onPrewClick(row) {
       width="500"
       :before-close="handleClose"
     >
-      <el-upload
-        class="upload-demo"
-        drag
-        multiple
-        :action="`${baseUrl}/Import`"
-        :show-file-list="false"
-        :limit="1"
-        name="form"
-        accept=".xlsx, .xls"
-        :before-upload="onBeforeUpload"
-        :on-success="onUploadDialogSuccess"
-      >
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">
-          Drop file here or <em>click to upload</em>
-        </div>
-      </el-upload>
+      <div>
+        <el-upload
+          class="upload-demo"
+          drag
+          :action="`${baseUrl}/Import`"
+          v-model:file-list="fileModelList"
+          :show-file-list="false"
+          :limit="1"
+          name="form"
+          accept=".xlsx,.xls"
+          :before-upload="onBeforeDialogUpload"
+          :on-success="onUploadDialogSuccess"
+        >
+          <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+          <div class="el-upload__text">
+            Drop file here or <em>click to upload</em>
+          </div>
+        </el-upload>
+      </div>
       <template #footer>
         <div class="flex justify-between items-center">
-          <el-button type="primary" link @click="onExampleClick"
-            >Example</el-button
-          >
+          <el-button type="primary" link @click="onExampleClick">
+            Example
+          </el-button>
           <div>
             <el-button @click="dialog.visiable = false">Cancel</el-button>
             <el-button type="primary" @click="dialog.visiable = false">
@@ -773,13 +835,6 @@ function onPrewClick(row) {
         </div>
       </template>
     </el-dialog>
-    <!-- <el-dialog
-      v-model="dialog.fileVisiable"
-      title="Upload goods sheets"
-      width="500"
-    >
-      <img :src="dialog." />
-    </el-dialog> -->
   </div>
 </template>
 
@@ -788,5 +843,9 @@ function onPrewClick(row) {
   .el-input__inner {
     text-align: left;
   }
+}
+
+.el-input__validateIcon {
+  color: #67c23a;
 }
 </style>

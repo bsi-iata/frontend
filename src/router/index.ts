@@ -8,7 +8,7 @@ const router = createRouter({
       path: '/',
       name: 'Home',
       meta: {
-        title: '首页'
+        title: 'order'
       },
       component: () => import('../views/home.vue')
     },
@@ -16,7 +16,7 @@ const router = createRouter({
       path: '/detail',
       name: 'detail',
       meta: {
-        title: '详情'
+        title: 'order-detail'
       },
       component: () => import('../views/orderDetail.vue'),
       props: true

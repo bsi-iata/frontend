@@ -99,6 +99,11 @@ const cityArray = [
 export const city = cityArray.map((item) => ({ label: item, value: item }));
 
 const stateArray = [
+  "Nebraska",
+  "NewYork",
+  "Wisconsin",
+  "Alaska",
+  "Alabama",
   "Beijing",
   "LiaoNing",
   "JiLin",
@@ -119,6 +124,7 @@ const stateArray = [
 export const state = stateArray.map((item) => ({ label: item, value: item }));
 
 const curruyArray = [
+  "U.S.A.",
   "ANDORRA",
   "UNITED ARAB EMIRATES",
   "AFGHANISTAN",
@@ -171,6 +177,5 @@ const flightArray = [
   "CZ327",
   "CZ699",
 ];
-
 
 export const flight = flightArray.map((item) => ({ label: item, value: item }));
